@@ -11,7 +11,7 @@ package datapath_declarations is
   component datapath is
     generic( word_size : integer := 16; 
              data_width: integer := 32; 
-             addr_width: integer := 4);
+             addr_width: integer := 8);
     port (clk          : in std_logic;
           reset        : in std_logic;
           datapath_in  : in std_logic_vector(7 downto 0);
@@ -42,7 +42,9 @@ use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
 
 entity datapath is
-  generic( word_size : integer := 16 );
+  generic( word_size : integer := 16;
+           data_width: integer := 32; 
+           addr_width: integer := 8);
   port (clk          : in std_logic;
         reset        : in std_logic;
         datapath_in  : in std_logic_vector(7 downto 0);
@@ -77,7 +79,7 @@ begin
   REGC:		vDFFE generic map(word_size) port map(clk, loadc, aluout, cout );
   REGFIL:	register_file generic map(word_size) port map(clk, readnum, writenum, write_value, write, read_value);
   RAM: RAM generic map(addr_width) port map(clk, addr, write, din, dout);
-  PC: vDFF generic map(word_size) port map(clk, PCin, PCout);
+  PC: vDFF generic map(addr_width) port map(clk, PCin, PCout);
   IR: vDFFe generic map(word_size) port map(clk, loadir, IRout)
   
  -- bin <= (11b"0" & datapath_in(4 downto 0)) when bsel = '1' else binbsel;
