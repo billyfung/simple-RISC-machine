@@ -41,3 +41,30 @@ entity controller is
 end ;
 
 entity datapath is 
+end;
+
+architecture impl of controller is
+type state_type is (loadIR, updatePC, decode, readrm, alu, computeaddress, writerdrn);
+signal current_state, next_state, next1: state_type;
+signal Rn, Rd, Rm: std_logic_vector(2 downto 0);
+
+
+process(all) begin
+    case current_state is
+      when loadir =>  next1 <= updatepc;
+	  when updatepc => next1<= decode;.
+	  when decode => 
+		if ADD  = 
+      when YNS => next1 <= GEW; lights <= YNSL;
+      when GEW => next1 <= YEW; lights <= GEWL;
+      when YEW => next1 <= GNS; lights <= YEWL;
+      when others =>  
+        next1 <= std_logic_vector'(SWIDTH-1 downto 0 => '-'); 
+        lights <= "------";
+    end case;
+  end process;
+
+  -- add reset
+  next_state <= GNS when rst else next1;
+  
+ end process
