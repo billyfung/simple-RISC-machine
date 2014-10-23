@@ -6,6 +6,12 @@ use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
 
 package controller_declarations is
+
+  constant MOV: std_logic_vector(2 downto 0) := "110"
+  constant ALU: std_logic_vector(2 downto 0) := "101"
+  constant LDR: std_logic_vector(2 downto 0) := "011"
+  constant STR: std_logic_vector(2 downto 0) := "100"
+
   component controller is
     generic( );
     port (reset        : in std_logic;
@@ -48,16 +54,28 @@ type state_type is (loadIR, updatePC, decode, readrm, alu, computeaddress, write
 signal current_state, next_state, next1: state_type;
 signal Rn, Rd, Rm: std_logic_vector(2 downto 0);
 
+--perhaps it would be easier to use states defined by their opcode
+
 
 process(all) begin
     case current_state is
-      when loadir =>  next1 <= updatepc;
-	  when updatepc => next1<= decode;.
-	  when decode => 
-		if ADD  = 
-      when YNS => next1 <= GEW; lights <= YNSL;
-      when GEW => next1 <= YEW; lights <= GEWL;
-      when YEW => next1 <= GNS; lights <= YEWL;
+      when loadir =>  
+        next1 <= updatepc; -- 
+        msel <= '0';
+        reset <= '0';
+        loadpc <= '0'
+  	  when updatepc => 
+        next1<= decode; -- Rn into register A, Rm into register B
+        read_value <= Rn;
+        loada <= 1;
+
+  	  when decode => 
+        case opcode&op is
+          when MOV & "10" => next1 <= writerdrn;
+          when ALU => next1 <=
+
+          when others =>  state <= S1;
+          end case;
       when others =>  
         next1 <= std_logic_vector'(SWIDTH-1 downto 0 => '-'); 
         lights <= "------";
@@ -65,6 +83,6 @@ process(all) begin
   end process;
 
   -- add reset
-  next_state <= GNS when rst else next1;
+  next_state <= loadir when reset else next1;
   
  end process
