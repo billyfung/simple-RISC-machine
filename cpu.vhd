@@ -65,14 +65,30 @@ process(all) begin
         reset <= '0';
         loadpc <= '0'
   	  when updatepc => 
-        next1<= decode; -- Rn into register A, Rm into register B
+        next1<= decode; -- Rn into register A
         read_value <= Rn;
         loada <= 1;
 
   	  when decode => 
+      -- read Rm into register B
+        read_value <= Rm;
+        loadb <=1;
+        loada <=0;
         case opcode&op is
-          when MOV & "10" => next1 <= writerdrn;
-          when ALU => next1 <=
+          when "11010" => next1 <= writerdrn;
+          when "101--" => next1 <= readrm;
+          when "01100" => next1 <= computeaddress;
+          when "10000" => next1 <= computeaddress;
+          when others => next1 <= '-';
+        end case;
+
+      when readrm =>
+      loadb <= 0;
+        case opcode&op is
+          when "101--" => next1 <= alu;
+          when "11000" => next1 <= writerdrn; asel <= 1; loadc<=1
+          when others => next1 <= '-';
+        end case;
 
           when others =>  state <= S1;
           end case;
