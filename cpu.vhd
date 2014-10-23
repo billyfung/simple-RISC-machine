@@ -50,7 +50,8 @@ end ;
 
 
 
-entity datapath is 
+entity cpu is 
+
 end;
 
 architecture impl of controller is
@@ -60,6 +61,11 @@ signal Rn, Rd, Rm: std_logic_vector(2 downto 0);
 
 --perhaps it would be easier to use states defined by their opcode
 
+reset<='1';
+loadpc<='0';
+loadir<='0';
+msel<='1';
+vsel<= "11";
 
 process(all) begin
     case current_state is
@@ -79,22 +85,22 @@ process(all) begin
         loada <= 1;
         nsel<="11";
 
-        case opcode&op is
-          when "11010" => next1 <= writerdrn;
-          when "101--" => next1 <= readrm;
-          when "01100" => next1 <= computeaddress;
-          when "10000" => next1 <= computeaddress;
+        case? opcode&op is
+          when "11010" => next1 <= writerdrn; --mov Rn,#<imm8>
+          when "101--" => next1 <= readrm; --read rm state
+          when "01100" => next1 <= computeaddress; --compute address for ldr str
+          when "10000" => next1 <= computeaddress; -- compute address for ldr str
           when others => next1 <= '-';
-        end case;
+        end case?;
 
       when readrm =>
         -- decode and determine which opcode state to go into
         loadb <= 0;
-        case opcode&op is
+        case? opcode&op is
           when "101--" => next1 <= alu;
           when "11000" => next1 <= writerdrn; asel <= 1; bsel<=0; loadc<=1;
           when others => next1 <= '-';
-        end case;
+        end case?;
 
       when alu =>
           aluop <= op;
