@@ -4,6 +4,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
+use work.datapath_declarations.all;
 
 package controller_declarations is
 
@@ -18,9 +19,9 @@ package controller_declarations is
 		  opcode	   : in std_logic_vector(2 downto 0);
 		  op		   : in std_logic_vector(1 downto 0);
 
-          status       : buffer std_logic;
+      status       : buffer std_logic;
 		  loadir	   : out std_logic;
-          loadpc	   : out std_logic;
+      loadpc	   : out std_logic;
 		  vsel		   : out std_logic;
 		  nsel         : out std_logic_vector(1 downto 0)
 		  );
@@ -31,20 +32,23 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
+use work.datapath_declarations.all;
 
 entity controller is
     generic( );
-    port (reset        : in std_logic;
-		  opcode	   : in std_logic_vector(2 downto 0);
-		  op		   : in std_logic_vector(1 downto 0);
-
-          status       : buffer std_logic;
+    port (
+      reset        : in std_logic;
+		  opcode	     : in std_logic_vector(2 downto 0);
+		  op		      : in std_logic_vector(1 downto 0);
+      status       : buffer std_logic;
 		  loadir	   : out std_logic;
-          loadpc	   : out std_logic;
+      loadpc	   : out std_logic;
 		  vsel		   : out std_logic;
 		  nsel         : out std_logic_vector(1 downto 0)
 		  );
 end ;
+
+
 
 entity datapath is 
 end;
@@ -63,17 +67,18 @@ process(all) begin
         next1 <= updatepc; -- 
         msel <= '0';
         reset <= '0';
-        loadpc <= '0'
+        loadpc <= '0';
+
   	  when updatepc => 
-        next1<= decode; -- Rn into register A
-        read_value <= Rn;
-        loada <= 1;
+        next1 <= decode; 
+        loadpc <= '1';
 
   	  when decode => 
-      -- read Rm into register B
+      -- read Rn into register A
         read_value <= Rm;
-        loadb <=1;
-        loada <=0;
+        loada <= 1;
+        nsel<="11";
+
         case opcode&op is
           when "11010" => next1 <= writerdrn;
           when "101--" => next1 <= readrm;
@@ -83,12 +88,18 @@ process(all) begin
         end case;
 
       when readrm =>
-      loadb <= 0;
+        -- decode and determine which opcode state to go into
+        loadb <= 0;
         case opcode&op is
           when "101--" => next1 <= alu;
-          when "11000" => next1 <= writerdrn; asel <= 1; loadc<=1
+          when "11000" => next1 <= writerdrn; asel <= 1; bsel<=0; loadc<=1;
           when others => next1 <= '-';
         end case;
+
+      when alu =>
+          aluop <= op;
+          loadc <= 1;
+          next1<=
 
           when others =>  state <= S1;
           end case;
