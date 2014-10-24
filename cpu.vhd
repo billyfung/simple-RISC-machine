@@ -93,25 +93,31 @@ end process;
 
 loadir <= '1' when current_state = loadir else '0';
 loadpc <= '1' when current_state = updatepc else '0';
-read_value <= Rm when current_state = decode else "000";
-loada <= '1' when current_state = decode else '0'; -- Rm into regA
-loadb <= '1' when current_state = readrm else '0';
---Rn <= sximm8 when current_state&opcode = writerdrn & "10" else "---"; -- rn=sximm8 
-nsel <= "11" when current_state & opcode = writerdrn & "10" else "10"; -- nsel = rn for mov_rn, else nsel =rd
-loadc <= '1' when current_state = alu else '0';
---status flag <= cmp stuff
-asel <= '1' when current_state & opcode = writerdrn & "00" else '0;' -- rd = shifted_rm
+loada <= '1' when current_state = decode else '0'; -- Rn into regA
+loadb <= '1' when current_state = readrm else '0'; -- Rm into regB
+loadc <= '1' when current_state = alu else '0'; --aluout into regC
+nsel <= "11" when current_state & opcode = writerdrn & mov else "10"; -- nsel = rn for mov_rn, else nsel =rd
 
+--status flag <= cmp stuff
+asel <= '1' when current_state & opcode & op = writerdrn & mov & "00" else '0;' -- rd = shifted_rm
+
+--bsel is for mux regB output & sximm5
   case current_state&opcode is
-    when alu&"011" => bsel <= '1';
-    when alu&"100" => bsel <= '1';
+    when alu & LDR => bsel <= '1';
+    when alu & STR => bsel <= '1';
     when others => bsel <= '0';
   end case;
-msel <= '1' when bsel = '1' else '0';
-mwrite <= '1' when current_state & opcode = memory & "100"
-vsel <= "10" when current_state & opcode&op = writerdrn & "110" & "00" else 
-        "11" when current_state & opcode = writerdrn & "011"
+msel <= '1' when current_state & opcode = writerdrn & STR else '0';
+--enables writing into RAM 
+mwrite <= '1' when current_state & opcode = memory & STR else '0';
+--vsel selects what value to write into register 11 - mdata, 10-sximm8, 01-Pcout, 00-Cout
+vsel <= "10" when current_state & opcode  = writerdrn & MOV  else 
+        "11" when current_state & opcode  = writerdrn & LDR  else 
+        "00" -- default is Cout as value into registerfile
 
+--regfile address Rn when mov rn, else rd 
+--11 Rn, 10 Rd, 01 Rm
+nsel <= "11" when current_state & opcode & op = writerdrn &  MOV & "10" else "10";
 
 
   -- add reset
