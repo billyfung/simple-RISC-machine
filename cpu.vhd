@@ -47,8 +47,6 @@ entity controller is
 		  );
 end ;
 
-
-
 entity cpu is 
 
 end;
@@ -58,8 +56,9 @@ type state_type is (loadIR, updatePC, decode, readrm, alu, memory, writerdrn);
 signal current_state, next_state, next1: state_type;
 signal Rn, Rd, Rm: std_logic_vector(2 downto 0);
 
---perhaps it would be easier to use states defined by their opcode
 begin
+
+SR: vDFF generic map(SWIDTH) port map(clk,next_state,current_state); -- state register
 
 current_state <= state_type'val(to_integer(unsigned(state_type)));
 next_state <= state_type'val(to_integer(unsigned(state_type)));
@@ -113,7 +112,7 @@ mwrite <= '1' when current_state & opcode = memory & STR else '0';
 --vsel selects what value to write into register 11 - mdata, 10-sximm8, 01-Pcout, 00-Cout
 vsel <= "10" when current_state & opcode  = writerdrn & MOV  else 
         "11" when current_state & opcode  = writerdrn & LDR  else 
-        "00" -- default is Cout as value into registerfile
+        "00"; -- default is Cout as value into registerfile
 
 --regfile address Rn when mov rn, else rd 
 --11 Rn, 10 Rd, 01 Rm
