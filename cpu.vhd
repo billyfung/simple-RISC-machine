@@ -14,10 +14,10 @@ package controller_declarations is
   constant STR: std_logic_vector(2 downto 0) := "100";
 
   component controller is
-    port (reset        : in std_logic;
+    port (
+      reset        : in std_logic;
 		  opcode	   : in std_logic_vector(2 downto 0);
 		  op		   : in std_logic_vector(1 downto 0);
-
       status       : buffer std_logic;
 		  loadir	   : out std_logic;
       loadpc	   : out std_logic;
@@ -34,7 +34,7 @@ use ieee.std_logic_unsigned.all;
 use work.datapath_declarations.all;
 
 entity controller is
-    generic( );
+    --generic( );
     port (
       reset        : in std_logic;
 		  opcode	     : in std_logic_vector(2 downto 0);
@@ -47,17 +47,22 @@ entity controller is
 		  );
 end ;
 
-entity cpu is 
-
-end;
+--add datapath component
 
 architecture impl of controller is
 type state_type is (loadIR, updatePC, decode, readrm, alu, memory, writerdrn);
 signal current_state, next_state, next1: state_type;
 signal Rn, Rd, Rm: std_logic_vector(2 downto 0);
 
+signal clk, reset, write, loada, loadb, loadc, asel, bsel, loads, status: std_logic;
+signal datapath_in : std_logic_vector(7 downto 0);
+signal readnum, writenum: std_logic_vector(2 downto 0);
+signal vsel, shift, aluop  : std_logic_vector(1 downto 0);
+
+
 begin
 
+datapath: datapath port map(clk, reset, datapath_in, write, readnum, vsel,loada,loadb,shift,asel,bsel, ALUop, loadc,loads, writenum, status, datapath_out );
 SR: vDFF generic map(SWIDTH) port map(clk,next_state,current_state); -- state register
 
 current_state <= state_type'val(to_integer(unsigned(state_type)));
@@ -67,7 +72,7 @@ next1 <= state_type'val(to_integer(unsigned(state_type)));
 aluop <= op;
 
 process(all) begin
-    case? current_state&opcode&op is
+    case? current_state & opcode & op is
       when loadir & "-----" => next1 <= updatepc;
       when updatepc & "-----" => next1 <= decode;
       when decode & "11010" => next1 <= writerdrn; --mov rn
@@ -95,6 +100,7 @@ loadpc <= '1' when current_state = updatepc else '0';
 loada <= '1' when current_state = decode else '0'; -- Rn into regA
 loadb <= '1' when current_state = readrm else '0'; -- Rm into regB
 loadc <= '1' when current_state = alu else '0'; --aluout into regC
+
 nsel <= "11" when current_state & opcode = writerdrn & mov else "10"; -- nsel = rn for mov_rn, else nsel =rd
 
 --status flag <= cmp stuff
@@ -118,8 +124,7 @@ vsel <= "10" when current_state & opcode  = writerdrn & MOV  else
 --11 Rn, 10 Rd, 01 Rm
 nsel <= "11" when current_state & opcode & op = writerdrn &  MOV & "10" else "10";
 
-
   -- add reset
-  next_state <= loadir when reset else next1;
+next_state <= loadir when reset else next1;
   
- end;
+end;
