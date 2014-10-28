@@ -9,26 +9,33 @@ use ieee.std_logic_unsigned.all;
 
 package datapath_declarations is
   component datapath is
-    generic( word_size : integer := 16; 
-             data_width: integer := 32; 
-             addr_width: integer := 8);
+    generic( word_size : integer := 16; addr_width : integer := 8 );
     port (clk          : in std_logic;
-          reset        : in std_logic;
-          datapath_in  : in std_logic_vector(7 downto 0);
-          write        : in std_logic;
-          readnum      : in std_logic_vector(2 downto 0);
-          vsel         : in std_logic;
-          loada        : in std_logic;
-          loadb        : in std_logic;
-          shift        : in std_logic_vector(1 downto 0);
-          asel         : in std_logic;
-          bsel         : in std_logic;
-          ALUop        : in std_logic_vector(1 downto 0);
-          loadc        : in std_logic;
-          loads        : in std_logic;
-          writenum     : in std_logic_vector(2 downto 0);
-          status       : buffer std_logic;
-          datapath_out : out std_logic_vector(word_size-1 downto 0) );
+        reset        : in std_logic;
+        write        : in std_logic;
+		  --ft_mdata		: in std_logic_vector(15 downto 0);
+		 -- ft_use_mdata : in std_logic;
+		  mwrite			: in std_logic;
+		  msel			: in std_logic;
+		  loadir			: in std_logic;
+		  loadpc			: in std_logic;
+			--readnum      : in std_logic_vector(2 downto 0);
+        vsel         : in std_logic_vector(1 downto 0);
+		--	sximm5       : in std_logic_vector(word_size-1 downto 0);
+		--	sximm8       :in std_logic_vector(word_size-1 downto 0);
+        loada        : in std_logic;
+        loadb        : in std_logic;
+		--	shift        : in std_logic_vector(1 downto 0);
+        asel         : in std_logic;
+        bsel         : in std_logic;
+		--	ALUop        : in std_logic_vector(1 downto 0);
+        loadc        : in std_logic;
+        loads        : in std_logic;
+		  nsel			: in std_logic_vector(1 downto 0);
+		--	writenum     : in std_logic_vector(2 downto 0);
+		   opcode      : out std_logic_vector(2 downto 0);
+		   op           : out std_logic_vector(1 downto 0);
+        status       : out std_logic_vector(2 downto 0));
   end component;
 end package;
 
@@ -42,34 +49,50 @@ use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
 
 entity datapath is
-  generic( word_size : integer := 16;
-           data_width: integer := 32; 
-           addr_width: integer := 8);
+  generic( word_size : integer := 16; addr_width : integer := 8 );
   port (clk          : in std_logic;
         reset        : in std_logic;
-        datapath_in  : in std_logic_vector(7 downto 0);
+       -- datapath_in  : in std_logic_vector(7 downto 0);
         write        : in std_logic;
-        readnum      : in std_logic_vector(2 downto 0);
+		  --ft_mdata		: in std_logic_vector(15 downto 0);	--ft stands for 'for test' and must be commented unless used for testbench
+		  --ft_use_mdata	: in std_logic;
+		  mwrite			: in std_logic;
+		  msel			: in std_logic;
+		  loadir			: in std_logic;
+		  loadpc			: in std_logic;
+        --readnum      : in std_logic_vector(2 downto 0);
         vsel         : in std_logic_vector(1 downto 0);
+		 -- sximm5, sximm8:in std_logic_vector(word_size-1 downto 0);
         loada        : in std_logic;
         loadb        : in std_logic;
-        shift        : in std_logic_vector(1 downto 0);
+		--	shift        : in std_logic_vector(1 downto 0);
         asel         : in std_logic;
         bsel         : in std_logic;
-        ALUop        : in std_logic_vector(1 downto 0);
+       -- ALUop        : in std_logic_vector(1 downto 0);
         loadc        : in std_logic;
         loads        : in std_logic;
-        writenum     : in std_logic_vector(2 downto 0);
-        status       : buffer std_logic;
-        datapath_out : out std_logic_vector(word_size-1 downto 0) );
+       -- writenum     : in std_logic_vector(2 downto 0);
+		  nsel			: in std_logic_vector( 1 downto 0);
+		  
+		  opcode			: out std_logic_vector(2 downto 0);
+		  op				: out std_logic_vector(1 downto 0);
+
+        status       : out std_logic_vector(2 downto 0));
+        --datapath_out : out std_logic_vector(word_size-1 downto 0) );
 end datapath;
 
 architecture impl of datapath is
-signal read_value, write_value, ainbsel, binbshft, binbsel, ain, bin, aluout, cout, dout: std_logic_vector (word_size-1 downto 0);
-signal addr, pcout, pcin, IRout, loadpcOUT, resetOUT: std_logic_vector(addr_width-1 downto 0);
-signal sximm5,sximm8: std_logic_vector(word_size-1 downto 0);
-signal Z, N, V :  std_logic;
---signal binbshft, binbsel: bit_vector (15 downto 0);
+
+	signal read_value, write_value, ainbsel, binbshft, binbsel, ain, bin, aluout, cout, mdata, irout, sximm5, sximm8: std_logic_vector (word_size-1 downto 0);
+	signal msel_out, PC_out, rst_out, loadpc_out, incrementer_out: std_logic_vector (addr_width-1 downto 0);
+	signal Rn, Rd, Rm, nsel_out, writenum, readnum: std_logic_vector(2 downto 0);
+	signal ALUop, shift: std_logic_vector(1 downto 0);
+	--signal imm5 : std_logic_vector(4 downto 0);
+	--signal ft_mdata_in : std_logic_vector(15 downto 0);
+	signal sx_11	: std_logic_vector(10 downto 0);
+	signal sx_8		: std_logic_vector(7 downto 0);
+	
+
 begin
   
   REGA:		vDFFE generic map(word_size) port map(clk, loada, read_value, ainbsel );
@@ -78,14 +101,52 @@ begin
   ALUDP:		alu 	port map(ain, bin, ALUop, aluout, status);
   REGC:		vDFFE generic map(word_size) port map(clk, loadc, aluout, cout );
   REGFIL:	register_file generic map(word_size) port map(clk, readnum, writenum, write_value, write, read_value);
-  RAM: RAM generic map(addr_width) port map(clk, addr, write, din, dout);
-  PC: vDFF generic map(addr_width) port map(clk, PCin, PCout);
-  IR: vDFFe generic map(word_size) port map(clk, loadir, IRout)
+ 
+--------------------------------------------------------------------------------------------------------------
+  PC: 		vDFF generic map(addr_width) port map(clk, rst_out, PC_out);												--
+  RAMM:		RAM generic map (word_size, addr_width, "data.bin", "data.mif") port map (clk, msel_out, mwrite, bin, mdata );		--
+  IR:			vDFFE generic map(word_size) port map(clk, loadir, mdata, irout);											--
+--------------------------------------------------------------------------------------------------------------
   
- -- bin <= (11b"0" & datapath_in(4 downto 0)) when bsel = '1' else binbsel;
- -- ain <=	(16b"0") when asel = '1' else ainbsel;
- -- write_value <= (8b"0" & datapath_in) when vsel = '1' else cout;
-  datapath_out <= cout;
+--------------------------------------------------------------------------------------------------------------																													--
+		incrementer_out <= (PC_out + 1);																								--																															--
+																																				--
+	process(all) begin																													--
+		case loadpc is																														--
+			when '1' => loadpc_out <= incrementer_out;																			--
+			when others => loadpc_out <= pc_out;																					--
+		end case;																															--
+	end process;																															--
+	
+	process(all) begin
+		case msel is
+			when '1' => msel_out <= cout(addr_width-1 downto 0);
+			when others => msel_out <= PC_out;
+		end case;
+	end process;
+	
+	process(all) begin
+		case reset is
+			when '1' => rst_out <= (others=>'0');
+			when others => rst_out <= loadpc_out;
+		end case;
+	end process;
+	
+	
+	-- for testing purposes, so we can force what mdata is
+	/*
+	process(all) begin
+		case ft_use_mdata is
+			when '1' => ft_mdata_in <= mdata;
+			when others => ft_mdata_in <= ft_mdata;
+		end case;
+	end process;
+	--*/
+
+	
+			
+  ------------------------------------------------------------------------------------------------------------
+  
   
   process(all) begin
 		case bsel is
@@ -105,40 +166,35 @@ begin
 		case vsel is
 			when "11" => write_value <= mdata;
 			when "10" => write_value <= sximm8;
-			when "01" => write_value <= PCout;
+			when "01" => write_value <= (8b"0" & PC_out);
 			when others => write_value <= cout;
 		end case;
   end process;
-
-  process(all) begin
-    case loadpc is
-      when '1' => loadpcOUT <= PCout + 1;
-      when others => loadpcOUT <= PCout;
-    end case;
-  end process;
-
-  process(all) begin
-    case reset is
-      when '1' => resetOUT <= (others=>'0');
-      when others => resetOUT <= loadpcOUT;
-    end case;
-  end process;
   
-  --figure 7 instruction decoder
-  opcode <= IRout(15 down to 13);
-  op <= IRout(12 downto 11);
-  ALUOp<= IRout(12 downto 11);
-  sximm5 <= std_logic_vector(resize(signed(IRout(4 downto 0)), 16));
-  sximm8 <= std_logic_vector(resize(signed(IRout(7 downto 0)), 16));
-  shift <= IROut(4 downto 3);
+  --datapath_out <= cout;
+  
+  ------------- Instruction Decoder ----------------
   
   process(all) begin
-  case nsel is
-	when "11" => readnum <= IRout(10 downto 8); writenum <= IRout(10 downto 8); --Rn
-	when "10" => readnum <= IRout(7 downto 5); writenum <= IRout(7 downto 5); --Rd
-	when "01" => readnum <= IRout(2 downto 0); writenum <= IRout(2 downto 0); --Rm
-	when others => readnum <= '-'; writenum <= '-';
+	ALUop <= irout(12 downto 11);
+	sx_11 <= (others=>irout(4));
+	sx_8 	<= (others=>irout(7));
+	sximm5 <= (sx_11 & irout(4 downto 0));
+	sximm8 <= (sx_8 & irout(7 downto 0));
+	shift <= (irout(4 downto 3));
+	readnum <= nsel_out;
+	writenum <= nsel_out;
+	Rn <= irout(10 downto 8);
+	Rd <= irout(7 downto 5);
+	Rm <= irout(2 downto 0);
+	case nsel is
+		when "00" => nsel_out <= Rn;
+		when "01" => nsel_out <= Rd;
+		when "10" => nsel_out <= Rm;
+		when others => nsel_out <= Rn;
 	end case;
-  end process;
+	opcode <= irout(15 downto 13);
+	op <= irout(12 downto 11);
+  end process; 
   
 end impl;
