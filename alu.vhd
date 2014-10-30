@@ -38,7 +38,12 @@ begin
 		end case;
 	end process;
 	
-	status(1) <= aluResult(15);
+	process(all) begin
+		case aluResult(15) is
+			when '1' => status(1) <= '1';
+			when others => status(1) <= '0';
+		end case;
+	end process;
 
 	process(all)
 		begin
