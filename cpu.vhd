@@ -1,3 +1,5 @@
+-- synthesis VHDL_INPUT_VERSION VHDL_2008
+
 --CPU controller 
 
 library ieee;
@@ -25,7 +27,7 @@ package controller_declarations is
   component controller is
     port (
       reset        : in std_logic;
-		clk			 : in std_logic
+		clk			 : in std_logic;
 		 -- opcode	   : in std_logic_vector(2 downto 0);
 		--  op		   : in std_logic_vector(1 downto 0);
      -- status       : buffer std_logic;
@@ -33,6 +35,8 @@ package controller_declarations is
      -- loadpc	   : out std_logic;
 		 -- vsel		   : out std_logic;
 		 -- nsel         : out std_logic_vector(1 downto 0)
+     incp : out std_logic;
+     execb: out std_logic
 		  );
   end component;
 end package;
@@ -48,7 +52,7 @@ entity controller is
     --generic( );
     port (
       reset        : in std_logic;
-		clk			 : in std_logic
+		clk			 : in std_logic;
 		  --opcode	     : in std_logic_vector(2 downto 0);
 		  --op		      : in std_logic_vector(1 downto 0);
      -- status       : buffer std_logic;
@@ -56,6 +60,9 @@ entity controller is
       --loadpc	   : buffer std_logic;
 		 -- vsel		   : buffer std_logic_vector(1 downto 0);
 		 -- nsel         : buffer std_logic_vector(1 downto 0)
+     datapath_out : out std_logic_vector(word_size-1 downto 0);
+		 incp : out std_logic;
+		 execb: out std_logic
 		  );
 end ;
 
@@ -70,11 +77,15 @@ architecture impl of controller is
 	signal datapath_in : std_logic_vector(7 downto 0);
 	signal status :std_logic_vector(2 downto 0);
 	signal op, vsel, nsel: std_logic_vector(1 downto 0);
+
+  signal datapath_out : std_logic_vector(word_size-1 downto 0);
 	
+	--opcodes
 	constant MOV: std_logic_vector(2 downto 0) := "110";
 	constant ALU: std_logic_vector(2 downto 0) := "101";
 	constant LDR: std_logic_vector(2 downto 0) := "011";
 	constant STR: std_logic_vector(2 downto 0) := "100";
+	constant BR: std_logic_vector(2 downto 0) := "001";
 
 	constant state_loadIR: std_logic_vector(2 downto 0) := "000";
 	constant updatePC: std_logic_vector(2 downto 0) := "001";

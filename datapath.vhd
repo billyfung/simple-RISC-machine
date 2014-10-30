@@ -35,7 +35,10 @@ package datapath_declarations is
 		--	writenum     : in std_logic_vector(2 downto 0);
 		   opcode      : out std_logic_vector(2 downto 0);
 		   op           : out std_logic_vector(1 downto 0);
-        status       : out std_logic_vector(2 downto 0));
+        status       : out std_logic_vector(2 downto 0);
+		
+		datapath_out : out std_logic_vector(word_size-1 downto 0) 
+		);
   end component;
 end package;
 
@@ -77,8 +80,9 @@ entity datapath is
 		  opcode			: out std_logic_vector(2 downto 0);
 		  op				: out std_logic_vector(1 downto 0);
 
-        status       : out std_logic_vector(2 downto 0));
-        --datapath_out : out std_logic_vector(word_size-1 downto 0) );
+        status       : out std_logic_vector(2 downto 0);
+        datapath_out : out std_logic_vector(word_size-1 downto 0) 
+		);
 end datapath;
 
 architecture impl of datapath is
@@ -91,6 +95,8 @@ architecture impl of datapath is
 	--signal ft_mdata_in : std_logic_vector(15 downto 0);
 	signal sx_11	: std_logic_vector(10 downto 0);
 	signal sx_8		: std_logic_vector(7 downto 0);
+
+	signal taken: std_logic;
 	
 
 begin
@@ -98,18 +104,19 @@ begin
   REGA:		vDFFE generic map(word_size) port map(clk, loada, read_value, ainbsel );
   SHIFTR:	shifter port map(binbshft, shift, binbsel);
   REGB:		vDFFE generic map(word_size) port map(clk, loadb, read_value, binbshft );
-  ALUDP:		alu 	port map(ain, bin, ALUop, aluout, status);
+  ALUDP:	alu 	port map(ain, bin, ALUop, aluout, status);
   REGC:		vDFFE generic map(word_size) port map(clk, loadc, aluout, cout );
   REGFIL:	register_file generic map(word_size) port map(clk, readnum, writenum, write_value, write, read_value);
  
 --------------------------------------------------------------------------------------------------------------
   PC: 		vDFF generic map(addr_width) port map(clk, rst_out, PC_out);												--
   RAMM:		RAM generic map (word_size, addr_width, "data.bin", "data.mif") port map (clk, msel_out, mwrite, bin, mdata );		--
-  IR:			vDFFE generic map(word_size) port map(clk, loadir, mdata, irout);											--
+  IR:		vDFFE generic map(word_size) port map(clk, loadir, mdata, irout);											--
 --------------------------------------------------------------------------------------------------------------
   
 --------------------------------------------------------------------------------------------------------------																													--
-		incrementer_out <= (PC_out + 1);																								--																															--
+		incrementer_out <= (PC_out + 1);	
+		datapath_out <= cout;																							--																															--
 																																				--
 	process(all) begin																													--
 		case loadpc is																														--
@@ -171,7 +178,7 @@ begin
 		end case;
   end process;
   
-  --datapath_out <= cout;
+  
   
   ------------- Instruction Decoder ----------------
   
@@ -196,5 +203,8 @@ begin
 	opcode <= irout(15 downto 13);
 	op <= irout(12 downto 11);
   end process; 
-  
+
+   ------------- Branch Unit ----------------
+	taken <= '1' when ((execb = '1') and
+						(cond = "000"))
 end impl;
